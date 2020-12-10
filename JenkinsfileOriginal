@@ -1,0 +1,28 @@
+pipeline {
+    agent any
+    stages {
+    	stage('build') {
+	    steps {
+            	bat 'mvn package'
+                }
+	} 
+	stage('Sonarqube analysis') {
+	    steps {
+	    	withSonarQubeEnv('sonar') {
+    			bat "mvn sonar:sonar"
+		}
+	    }	
+	}   
+	stage('Publish artifact to Nexus repository') {
+	    steps {
+		nexusPublisher nexusInstanceId: '1234', nexusRepositoryId: 'myNexusRepo', packages: [[$class: 'MavenPackage', mavenAssetList: [[classifier: '', extension: '', filePath: 'C:\\Program Files (x86)\\Jenkins\\jobs\\sonar-job\\workspace\\project\\target\\ProjectIGI-1.1.war']], mavenCoordinate: [artifactId: 'projectIGI', groupId: 'com.ci.jenkins', packaging: 'war', version: '1.${BUILD_NUMBER}']]]
+	    }
+	}
+	stage('Deploy artifact from Nexus to Tomcat container') {
+	    steps {
+	    	bat "C:/curl-7.70.0-win64-mingw/bin/curl -u admin:admin -o C:/apache-tomcat-8.5.55/webapps/myapp.war http://localhost:8082/nexus/repository/myNexusRepo/com/ci/jenkins/projectIGI/1.${BUILD_NUMBER}/projectIGI-1.${BUILD_NUMBER}.war"
+    	    }
+	}    
+     }
+}
+	
